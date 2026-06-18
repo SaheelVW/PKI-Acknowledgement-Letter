@@ -12,6 +12,7 @@ import {
   getStoredOfficer,
   clearAuth,
   fetchEmployees,
+  savePdfToServer,
 } from "./utils/api";
 import "./styles/app.css";
 
@@ -32,6 +33,7 @@ function buildInitialFormData() {
     empName: "",
     empId: "",
     gid: generateGID(),
+    tokenType: "",
     sessionLocation: "Pune",
     raOfficer: "",
     sessionDate: getTodayISO(),
@@ -123,7 +125,7 @@ export default function App() {
       if (!pageEl) return;
 
       const canvas = await html2canvas(pageEl, {
-        scale: 3,
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
@@ -138,13 +140,31 @@ export default function App() {
         format: "a4",
       });
 
-      const imgData = canvas.toDataURL("image/png");
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-      pdf.save(`PKI_${formData.empName}_${formData.empId}.pdf`);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [formData.empName, formData.empId, isEmpty]);
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+      pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
+      const tokenSuffix =
+        formData.tokenType === "SOFT TOKEN" ? "_SOFT_TOKEN" : "";
+      const fileName = `PKI_${formData.empName}_${formData.empId}${tokenSuffix}.pdf`;
+
+      // Send the PDF to the backend which writes it directly to the
+      // OneDrive-synced folder configured in PDF_SAVE_FOLDER.
+      const pdfBase64 = pdf.output("datauristring").split(",")[1];
+        try {
+          await savePdfToServer(pdfBase64, fileName);
+          alert(`✅ PDF saved successfully!\n\n${fileName}`);
+        } catch (saveErr) {
+          console.error("Save to server failed:", saveErr);
+          // Fallback: download locally so the PDF is never lost
+          pdf.save(fileName);
+          alert(`⚠️ Could not save to server (${saveErr.message}).\n\nThe PDF has been downloaded to your Downloads folder instead.`);
+        }
+      } catch (err) {
+        console.error("PDF generation failed:", err);
+        alert(`❌ Failed to generate PDF: ${err.message}`);
+      } finally {
+        setIsGenerating(false);
+      }
+    }, [formData.empName, formData.empId, formData.tokenType, isEmpty]);
 
   if (!officer) {
     return <Login onSuccess={setOfficer} />;

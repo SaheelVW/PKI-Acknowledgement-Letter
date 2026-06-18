@@ -25,6 +25,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev-insecure-secret";
 const TOKEN_EXPIRY = process.env.TOKEN_EXPIRY || "8h";
+const PDF_SAVE_FOLDER = process.env.PDF_SAVE_FOLDER
+  ? path.resolve(process.env.PDF_SAVE_FOLDER)
+  : path.resolve(__dirname, "saved-pdfs");
 const EMPLOYEES_FILE = path.resolve(
   __dirname,
   process.env.EMPLOYEES_FILE || "./data/Employees.xlsx"
@@ -32,7 +35,7 @@ const EMPLOYEES_FILE = path.resolve(
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 
 // Seed data/users.json on first run.
 initStore();
@@ -221,7 +224,46 @@ app.get("/api/employees", authMiddleware, (_req, res) => {
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
-app.listen(PORT, () => {
+/* ---------- Save PDF to the configured OneDrive folder ---------- */
+app.post("/api/save-pdf", authMiddleware, async (req, res) => {
+  const { pdfBase64, fileName } = req.body || {};
+  if (!pdfBase64 || !fileName) {
+    return res.status(400).json({ error: "pdfBase64 and fileName are required" });
+  }
+
+  // Sanitise the filename — strip any path separators to prevent path traversal
+  const safeName = path.basename(fileName).replace(/[/\\]/g, "_");
+  if (!safeName.endsWith(".pdf")) {
+    return res.status(400).json({ error: "fileName must end with .pdf" });
+  }
+
+  try {
+    fs.mkdirSync(PDF_SAVE_FOLDER, { recursive: true });
+    const dest = path.join(PDF_SAVE_FOLDER, safeName);
+    const buffer = Buffer.from(pdfBase64, "base64");
+    fs.writeFileSync(dest, buffer);
+    res.json({ ok: true, path: dest });
+  } catch (err) {
+    console.error("save-pdf error:", err);
+    res.status(500).json({ error: "Failed to save PDF: " + err.message });
+  }
+});
+
+const server = app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
   console.log(`Employees workbook: ${EMPLOYEES_FILE}`);
+});
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(
+      `\n⚠️  Port ${PORT} is already in use — another backend is still running.\n` +
+        `   The existing server is fine; you do NOT need to start a second one.\n` +
+        `   To restart cleanly, stop the old one first:\n` +
+        `     Get-NetTCPConnection -LocalPort ${PORT} -State Listen | ` +
+        `Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force }\n`
+    );
+    process.exit(0);
+  }
+  throw err;
 });

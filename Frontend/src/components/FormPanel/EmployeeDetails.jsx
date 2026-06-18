@@ -54,6 +54,18 @@ export default function EmployeeDetails({ formData, onChange }) {
         </div>
 
         <div className="field">
+          <label htmlFor="tokenType">Token Type</label>
+          <select
+            id="tokenType"
+            value={formData.tokenType || ""}
+            onChange={handleChange}
+          >
+            <option value="">Regular</option>
+            <option value="SOFT TOKEN">SOFT TOKEN</option>
+          </select>
+        </div>
+
+        <div className="field">
           <label htmlFor="sessionLocation">Location</label>
           <input
             type="text"

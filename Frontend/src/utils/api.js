@@ -118,3 +118,28 @@ export function adminRemoveUser(username) {
   return authedRequest("DELETE", "/api/admin/users", { username });
 }
 
+/**
+ * Send a PDF (as a base64 string) to the backend so it can be saved
+ * directly to the configured OneDrive-synced folder on the server machine.
+ */
+export async function savePdfToServer(pdfBase64, fileName) {
+  const res = await fetch(`${BASE_URL}/api/save-pdf`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify({ pdfBase64, fileName }),
+  });
+
+  if (res.status === 401) {
+    clearAuth();
+    throw new Error("Session expired. Please log in again.");
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Save failed: ${res.status}`);
+  }
+  return res.json();
+}
+
