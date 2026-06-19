@@ -114,6 +114,28 @@ export default function App() {
 
   /* ---------- PDF GENERATION ---------- */
   const handleSubmit = useCallback(async () => {
+    // All employee details are mandatory — do not generate/save the PDF
+    // until every required field has been filled in.
+    const requiredFields = [
+      { key: "empId", label: "Employee ID" },
+      { key: "empName", label: "Employee Name" },
+      { key: "gid", label: "GID" },
+      { key: "sessionLocation", label: "Location" },
+      { key: "sessionDate", label: "Date" },
+    ];
+
+    const missing = requiredFields.filter(
+      (f) => !String(formData[f.key] || "").trim()
+    );
+
+    if (missing.length > 0) {
+      alert(
+        "Please fill in all required details before saving:\n\n" +
+          missing.map((f) => `• ${f.label}`).join("\n")
+      );
+      return;
+    }
+
     if (isEmpty()) {
       alert("Please add signature");
       return;
@@ -164,7 +186,7 @@ export default function App() {
       } finally {
         setIsGenerating(false);
       }
-    }, [formData.empName, formData.empId, formData.tokenType, isEmpty]);
+    }, [formData, isEmpty]);
 
   if (!officer) {
     return <Login onSuccess={setOfficer} />;
