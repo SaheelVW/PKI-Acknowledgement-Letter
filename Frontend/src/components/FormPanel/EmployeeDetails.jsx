@@ -54,7 +54,7 @@ export default function EmployeeDetails({ formData, onChange }) {
         </div>
 
         <div className="field">
-          <label htmlFor="tokenType">Token Type</label>
+          <label htmlFor="tokenType">Letter Type</label>
           <select
             id="tokenType"
             value={formData.tokenType || ""}

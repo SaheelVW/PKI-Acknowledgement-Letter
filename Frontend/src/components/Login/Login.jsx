@@ -37,7 +37,6 @@ export default function Login({ onSuccess }) {
             type="email"
             id="username"
             autoComplete="username"
-            placeholder="firstname.lastname@vwgds.com"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
