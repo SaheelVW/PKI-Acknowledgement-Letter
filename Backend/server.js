@@ -45,6 +45,7 @@ initStore();
 /* ------------------------------------------------------------------ */
 
 let employeesCache = null;
+let employeesMtimeMs = 0;
 
 /** Normalise a header so "Employee ID", "emp_id", "ID" all map the same. */
 function normalizeKey(key) {
@@ -59,10 +60,15 @@ function pick(row, candidates) {
 }
 
 function loadEmployees() {
-  if (employeesCache) return employeesCache;
-
   if (!fs.existsSync(EMPLOYEES_FILE)) {
     throw new Error(`Employees workbook not found at ${EMPLOYEES_FILE}`);
+  }
+
+  // Re-read the workbook whenever the file changes on disk (e.g. the daily
+  // OneDrive update) so the data never goes stale, but stay cached otherwise.
+  const mtimeMs = fs.statSync(EMPLOYEES_FILE).mtimeMs;
+  if (employeesCache && mtimeMs === employeesMtimeMs) {
+    return employeesCache;
   }
 
   const workbook = xlsx.readFile(EMPLOYEES_FILE);
@@ -77,6 +83,7 @@ function loadEmployees() {
     }))
     .filter((e) => e.id);
 
+  employeesMtimeMs = mtimeMs;
   return employeesCache;
 }
 
@@ -224,6 +231,92 @@ app.get("/api/employees", authMiddleware, (_req, res) => {
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
+/* ------------------------------------------------------------------ */
+/*  Signed acknowledgment letters — list & download saved PDFs        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Parse a saved PDF name of the form
+ *   PKI_{empName}_{empId}[_SOFT_TOKEN][_YYYYMMDD-HHMMSS].pdf
+ * and return { empId, tokenType, stampDate } (best-effort).
+ */
+function parseLetterName(fileName) {
+  let base = fileName.replace(/\.pdf$/i, "");
+
+  // Trailing timestamp (YYYYMMDD-HHMMSS), if present.
+  let stampDate = null;
+  const stampMatch = base.match(/_(\d{8})-(\d{6})$/);
+  if (stampMatch) {
+    const [, ymd, hms] = stampMatch;
+    const iso =
+      `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}` +
+      `T${hms.slice(0, 2)}:${hms.slice(2, 4)}:${hms.slice(4, 6)}`;
+    const parsed = new Date(iso);
+    if (!Number.isNaN(parsed.getTime())) stampDate = parsed.toISOString();
+    base = base.slice(0, stampMatch.index);
+  }
+
+  let tokenType = "";
+  if (/_SOFT_TOKEN$/i.test(base)) {
+    tokenType = "SOFT TOKEN";
+    base = base.replace(/_SOFT_TOKEN$/i, "");
+  }
+  // empId is the last underscore-separated segment.
+  const empId = base.includes("_") ? base.slice(base.lastIndexOf("_") + 1) : "";
+  return { empId, tokenType, stampDate };
+}
+
+/** List acknowledgment letters, optionally filtered by employee ID. */
+app.get("/api/letters", authMiddleware, (req, res) => {
+  const query = String(req.query.empId || "").trim().toLowerCase();
+
+  try {
+    if (!fs.existsSync(PDF_SAVE_FOLDER)) {
+      return res.json([]);
+    }
+
+    const letters = fs
+      .readdirSync(PDF_SAVE_FOLDER)
+      .filter((name) => name.toLowerCase().endsWith(".pdf"))
+      .map((name) => {
+        const { empId, tokenType, stampDate } = parseLetterName(name);
+        const stat = fs.statSync(path.join(PDF_SAVE_FOLDER, name));
+        return {
+          fileName: name,
+          empId,
+          tokenType,
+          date: stampDate || stat.mtime.toISOString(),
+        };
+      })
+      .filter((l) => !query || l.empId.toLowerCase() === query)
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    res.json(letters);
+  } catch (err) {
+    console.error("list letters error:", err);
+    res.status(500).json({ error: "Failed to list letters: " + err.message });
+  }
+});
+
+/** Download / open a single saved letter PDF. */
+app.get("/api/letters/file", authMiddleware, (req, res) => {
+  const requested = String(req.query.name || "");
+  // Prevent path traversal — only allow a plain file name.
+  const safeName = path.basename(requested);
+  if (!safeName.toLowerCase().endsWith(".pdf")) {
+    return res.status(400).json({ error: "Invalid file name" });
+  }
+
+  const filePath = path.join(PDF_SAVE_FOLDER, safeName);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: "File not found" });
+  }
+
+  res.type("application/pdf");
+  res.setHeader("Content-Disposition", `inline; filename="${safeName}"`);
+  fs.createReadStream(filePath).pipe(res);
+});
+
 /* ---------- Save PDF to the configured OneDrive folder ---------- */
 app.post("/api/save-pdf", authMiddleware, async (req, res) => {
   const { pdfBase64, fileName } = req.body || {};
@@ -249,8 +342,10 @@ app.post("/api/save-pdf", authMiddleware, async (req, res) => {
   }
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
+const HOST = process.env.HOST || "127.0.0.1";
+
+const server = app.listen(PORT, HOST, () => {
+  console.log(`Backend running on http://${HOST}:${PORT}`);
   console.log(`Employees workbook: ${EMPLOYEES_FILE}`);
 });
 

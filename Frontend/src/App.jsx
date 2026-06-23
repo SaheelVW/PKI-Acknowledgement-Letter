@@ -6,6 +6,7 @@ import FormPanel from "./components/FormPanel/FormPanel";
 import LetterPreview from "./components/LetterPreview/LetterPreview";
 import Login from "./components/Login/Login";
 import AccountPanel from "./components/Account/AccountPanel";
+import RecordsPanel from "./components/Records/RecordsPanel";
 import useSignaturePad from "./hooks/useSignaturePad";
 import { generateGID, getTodayISO } from "./utils/helpers";
 import {
@@ -46,6 +47,7 @@ export default function App() {
   const [formData, setFormData] = useState(buildInitialFormData);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [view, setView] = useState("form");
   const letterPageRef = useRef(null);
 
   /* ---------- LOAD EMPLOYEES FROM BACKEND (after login) ---------- */
@@ -92,10 +94,8 @@ export default function App() {
             ? `${surname}, ${firstName}`
             : surname;
 
-          // "VWGDS-Pune Congo" → "Pune"
-          next.sessionLocation = match.location
-            .replace(/^VW\w+-/, "")
-            .split(/[\s-]/)[0];
+          // Location is chosen once per session and kept until logout —
+          // do not overwrite it from the employee record.
         }
       }
 
@@ -105,10 +105,12 @@ export default function App() {
 
   /* ---------- RESET ---------- */
   const handleReset = useCallback(() => {
-    setFormData({
+    setFormData((prev) => ({
       ...buildInitialFormData(),
       raOfficer: officer?.displayValue || "",
-    });
+      // Keep the selected location until the officer logs out.
+      sessionLocation: prev.sessionLocation,
+    }));
     clearSignature();
   }, [clearSignature, officer]);
 
@@ -166,7 +168,14 @@ export default function App() {
       pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
       const tokenSuffix =
         formData.tokenType === "SOFT TOKEN" ? "_SOFT_TOKEN" : "";
-      const fileName = `PKI_${formData.empName}_${formData.empId}${tokenSuffix}.pdf`;
+      // Append a timestamp so saving the same employee again creates a new
+      // file instead of overwriting the previous one. Format: YYYYMMDD-HHMMSS.
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const stamp =
+        `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}` +
+        `-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const fileName = `PKI_${formData.empName}_${formData.empId}${tokenSuffix}_${stamp}.pdf`;
 
       // Send the PDF to the backend which writes it directly to the
       // OneDrive-synced folder configured in PDF_SAVE_FOLDER.
@@ -192,6 +201,18 @@ export default function App() {
     return <Login onSuccess={setOfficer} />;
   }
 
+  if (view === "records") {
+    return (
+      <div className="app-shell">
+        <RecordsPanel
+          officer={officer}
+          onBack={() => setView("form")}
+          onLogout={handleLogout}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <FormPanel
@@ -206,6 +227,7 @@ export default function App() {
         officer={officer}
         onLogout={handleLogout}
         onOpenAccount={() => setShowAccount(true)}
+        onOpenRecords={() => setView("records")}
       />
 
       <LetterPreview

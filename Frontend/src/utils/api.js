@@ -90,6 +90,37 @@ export function fetchRaOfficers() {
   return authedGet("/api/ra-officers");
 }
 
+/** List signed acknowledgment letters, optionally filtered by employee ID. */
+export function fetchLetters(empId) {
+  const qs = empId ? `?empId=${encodeURIComponent(empId)}` : "";
+  return authedGet(`/api/letters${qs}`);
+}
+
+/**
+ * Fetch a saved letter PDF (with auth) and open it in a new browser tab.
+ * Returns the object URL so the caller can revoke it later if needed.
+ */
+export async function openLetterFile(fileName) {
+  const res = await fetch(
+    `${BASE_URL}/api/letters/file?name=${encodeURIComponent(fileName)}`,
+    { headers: { Authorization: `Bearer ${getToken()}` } }
+  );
+
+  if (res.status === 401) {
+    clearAuth();
+    throw new Error("Session expired. Please log in again.");
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Could not open file: ${res.status}`);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank", "noopener");
+  return url;
+}
+
 /** Change the logged-in user's own password. */
 export function changePassword(currentPassword, newPassword) {
   return authedPost("/api/change-password", { currentPassword, newPassword });

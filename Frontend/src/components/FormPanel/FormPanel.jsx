@@ -24,6 +24,7 @@ export default function FormPanel({
   officer,
   onLogout,
   onOpenAccount,
+  onOpenRecords,
 }) {
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -43,6 +44,13 @@ export default function FormPanel({
               )}
             </span>
             <div className="session-actions">
+              <button
+                type="button"
+                className="logout-btn"
+                onClick={onOpenRecords}
+              >
+                Records
+              </button>
               <button
                 type="button"
                 className="logout-btn"

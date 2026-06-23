@@ -411,6 +411,94 @@ button {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Records / signed letters lookup                                   */
+/* ------------------------------------------------------------------ */
+.records-panel {
+  grid-column: 1 / -1;
+  position: static;
+}
+
+.records-search {
+  margin-top: 20px;
+}
+
+.records-search label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.records-search-row {
+  display: flex;
+  gap: 10px;
+}
+
+.records-search-row input {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid var(--panel-line);
+  border-radius: 12px;
+  font-size: 1rem;
+}
+
+.records-error {
+  margin-top: 16px;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.records-results {
+  margin-top: 20px;
+}
+
+.records-count {
+  margin: 0 0 12px;
+  color: var(--panel-text);
+  font-weight: 600;
+}
+
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.records-table th,
+.records-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--panel-line);
+  vertical-align: top;
+}
+
+.records-table th {
+  color: var(--brand-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.74rem;
+}
+
+.records-table tr:hover td {
+  background: rgba(15, 118, 110, 0.05);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  word-break: break-all;
+  text-align: left;
+}
+
+.link-btn:hover {
+  color: var(--brand-dark);
+}
+
 @media (max-width: 760px) {
   .app-shell {
     padding: 8px;

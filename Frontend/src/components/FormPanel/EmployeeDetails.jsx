@@ -67,13 +67,16 @@ export default function EmployeeDetails({ formData, onChange }) {
 
         <div className="field">
           <label htmlFor="sessionLocation">Location</label>
-          <input
-            type="text"
+          <select
             id="sessionLocation"
             required
             value={formData.sessionLocation}
             onChange={handleChange}
-          />
+          >
+            <option value="Pune">Pune</option>
+            <option value="Gurgaon">Gurgaon</option>
+            <option value="Bangalore">Bangalore</option>
+          </select>
         </div>
 
         <div className="field">
