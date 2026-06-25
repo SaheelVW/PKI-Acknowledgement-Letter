@@ -1,5 +1,6 @@
 import EmployeeDetails from "./EmployeeDetails";
 import SignaturePad from "./SignaturePad";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * FormPanel — Left sidebar containing the form, signature pad, and action buttons.
@@ -17,8 +18,8 @@ export default function FormPanel({
   onChange,
   onSubmit,
   onReset,
-  canvasRef,
-  signatureHandlers,
+  signatureDataURL,
+  onCaptureSignature,
   onClearSignature,
   isGenerating,
   officer,
@@ -26,6 +27,35 @@ export default function FormPanel({
   onOpenAccount,
   onOpenRecords,
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close the menu when clicking outside of it or pressing Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const handlePointer = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    const handleKey = (e) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [menuOpen]);
+
+  const runAndClose = (fn) => () => {
+    setMenuOpen(false);
+    fn();
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit();
@@ -43,24 +73,48 @@ export default function FormPanel({
                 <span className="role-badge role-admin">admin</span>
               )}
             </span>
-            <div className="session-actions">
+            <div className="menu-wrap" ref={menuRef}>
               <button
                 type="button"
-                className="logout-btn"
-                onClick={onOpenRecords}
+                className="hamburger-btn"
+                aria-label="Open menu"
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((o) => !o)}
               >
-                Records
+                <span className="hamburger-bar" />
+                <span className="hamburger-bar" />
+                <span className="hamburger-bar" />
               </button>
-              <button
-                type="button"
-                className="logout-btn"
-                onClick={onOpenAccount}
-              >
-                Account
-              </button>
-              <button type="button" className="logout-btn" onClick={onLogout}>
-                Log out
-              </button>
+
+              {menuOpen && (
+                <div className="menu-dropdown" role="menu">
+                  <button
+                    type="button"
+                    className="menu-item"
+                    role="menuitem"
+                    onClick={runAndClose(onOpenAccount)}
+                  >
+                    Account
+                  </button>
+                  <button
+                    type="button"
+                    className="menu-item"
+                    role="menuitem"
+                    onClick={runAndClose(onOpenRecords)}
+                  >
+                    Records
+                  </button>
+                  <button
+                    type="button"
+                    className="menu-item menu-item-danger"
+                    role="menuitem"
+                    onClick={runAndClose(onLogout)}
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -70,8 +124,8 @@ export default function FormPanel({
         <EmployeeDetails formData={formData} onChange={onChange} />
 
         <SignaturePad
-          canvasRef={canvasRef}
-          handlers={signatureHandlers}
+          signatureDataURL={signatureDataURL}
+          onCapture={onCaptureSignature}
           onClear={onClearSignature}
         />
 

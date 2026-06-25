@@ -170,6 +170,74 @@ select {
   touch-action: none;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Fullscreen signature pad                                          */
+/* ------------------------------------------------------------------ */
+.sig-launch {
+  width: 100%;
+  min-height: 160px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 2px dashed #9ca6b3;
+  border-radius: 18px;
+  cursor: pointer;
+  padding: 12px;
+}
+
+.sig-launch:hover {
+  border-color: var(--brand);
+}
+
+.sig-launch-text {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.sig-preview-img {
+  max-width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+}
+
+.sig-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.sig-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--panel-line);
+  background: #f8fafc;
+}
+
+.sig-hint {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sig-toolbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.sig-canvas {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  touch-action: none; /* prevent scrolling/gestures while signing */
+  cursor: crosshair;
+}
+
 .hint {
   margin: 10px 0 0;
   color: var(--muted);
@@ -704,6 +772,80 @@ button {
 .session-actions {
   display: flex;
   gap: 8px;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Hamburger menu (top-right of the form panel)                      */
+/* ------------------------------------------------------------------ */
+.menu-wrap {
+  position: relative;
+}
+
+.hamburger-btn {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.hamburger-btn:hover {
+  background: var(--app-bg);
+}
+
+.hamburger-bar {
+  display: block;
+  width: 18px;
+  height: 2px;
+  margin: 0 auto;
+  background: var(--panel-text);
+  border-radius: 2px;
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid var(--panel-line);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--panel-text);
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: var(--app-bg);
+}
+
+.menu-item-danger {
+  color: #b91c1c;
+}
+
+.menu-item-danger:hover {
+  background: rgba(185, 28, 28, 0.08);
 }
 
 .role-badge {

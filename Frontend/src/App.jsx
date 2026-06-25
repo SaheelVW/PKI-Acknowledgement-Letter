@@ -74,7 +74,7 @@ export default function App() {
   }, []);
 
   // Signature pad hook
-  const { canvasRef, signatureDataURL, clearSignature, isEmpty, handlers } =
+  const { signatureDataURL, setSignature, clearSignature, isEmpty } =
     useSignaturePad();
 
   /* ---------- FORM FIELD CHANGE ---------- */
@@ -220,8 +220,8 @@ export default function App() {
         onChange={handleFieldChange}
         onSubmit={handleSubmit}
         onReset={handleReset}
-        canvasRef={canvasRef}
-        signatureHandlers={handlers}
+        signatureDataURL={signatureDataURL}
+        onCaptureSignature={setSignature}
         onClearSignature={clearSignature}
         isGenerating={isGenerating}
         officer={officer}
