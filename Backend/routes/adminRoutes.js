@@ -69,13 +69,4 @@ router.delete("/admin/users", authMiddleware, adminOnly, (req, res) => {
   }
 });
 
-/* ---------- RA officer dropdown (any logged-in user) ---------- */
-router.get("/ra-officers", authMiddleware, (_req, res) => {
-  res.json(
-    listUsers()
-      .filter((u) => u.role === "officer")
-      .map((u) => ({ label: u.label, value: u.displayValue }))
-  );
-});
-
 export default router;

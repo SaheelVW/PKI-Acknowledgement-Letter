@@ -86,10 +86,6 @@ export function fetchEmployees() {
   return authedGet("/api/employees");
 }
 
-export function fetchRaOfficers() {
-  return authedGet("/api/ra-officers");
-}
-
 /** List signed acknowledgment letters, optionally filtered by employee ID. */
 export function fetchLetters(empId) {
   const qs = empId ? `?empId=${encodeURIComponent(empId)}` : "";
